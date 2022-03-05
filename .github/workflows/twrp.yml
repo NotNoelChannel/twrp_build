@@ -35,21 +35,20 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, ubuntu-18.04]
+        os: [ubuntu-18.04]
 
     steps:
     - uses: actions/checkout@v2
 
     - name: Installing JDK 7 + Build Dependencies
       run: |
+        sudo apt-get install zip gcc-multilib g++-multilib \
+          libc6-dev-i386 lib32ncurses5-dev lib32z1-dev \
+          libgl1-mesa-dev libxml2-utils xsltproc schedtool axel
         mkdir ~/.jdk_7
         cd ~/.jdk_7
-        wget https://repo.huaweicloud.com/java/jdk/7u80-b15/jdk-7u80-linux-i586.tar.gz
-        tar -xzf jdk-7u80-linux-i586.tar.gz
-        sudo apt-get install git-core gnupg flex bison build-essential zip curl zlib1g-dev \
-          gcc-multilib g++-multilib libc6-dev-i386 libncurses5 lib32ncurses5-dev x11proto-core-dev \
-          libx11-dev lib32z1-dev libgl1-mesa-dev libxml2-utils xsltproc unzip fontconfig schedtool
-
+        axel -q -n $(nproc --all) https://download.java.net/openjdk/jdk7u75/ri/openjdk-7u75-b13-linux-x64-18_dec_2014.tar.gz
+        tar -xzf openjdk-7u75-b13-linux-x64-18_dec_2014.tar.gz
         sudo ln -f -s /usr/bin/python2.7 /usr/bin/python
 
     - name: Syncing TWRP sources
@@ -67,14 +66,14 @@ jobs:
       run: |
         OLDPATH=$PATH
         OLDJAVAHOME=$JAVA_HOME
-        export PATH="$HOME/.jdk_7/jdk1.7.0_80/bin:$PATH"
-        export JAVA_HOME="$HOME/.jdk_7/jdk1.7.0_80"
+        export PATH="$HOME/.jdk_7/java-se-7u75-ri/bin:$PATH"
+        export JAVA_HOME="$HOME/.jdk_7/java-se-7u75-ri"
         cd ~/TWRP
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         lunch ${{ github.event.inputs.product_name }}_${{ github.event.inputs.device_name }}-eng
-        mka recoveryimage
+        make -j$(nproc --all) recoveryimage
         export PATH=$OLDPATH
         export JAVA_HOME=$OLDJAVAHOME
 
