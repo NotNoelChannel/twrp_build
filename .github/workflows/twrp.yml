@@ -2,32 +2,6 @@ name: TWRP CI
 
 on:
   workflow_dispatch:
-    inputs:
-      product_name:
-        description: 'TWRP Lunch Name'
-        required: false
-        default: 'omni'
-      
-      device_name:
-        description: 'Device Codename'
-        required: true
-
-      twrp_manifest:
-        description: 'TWRP Manifest URL'
-        required: true
-      
-      twrp_branch:
-        description: 'TWRP Manifest Branch'
-        required: true
-      
-      device_manifest:
-        description: 'Device Manifest URL'
-        required: true
-      
-      device_branch:
-        description: 'Device Manifest Branch'
-        required: true
-
 
 jobs:
   build:
@@ -36,6 +10,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04]
+
+    env:
+      OEM: samsung
+      DEVICE: j1pop3g
 
     steps:
     - uses: actions/checkout@v2
@@ -59,8 +37,8 @@ jobs:
 
         mkdir ~/.bin
         curl http://commondatastorage.googleapis.com/git-repo-downloads/repo > ~/.bin/repo
-        python3 ~/.bin/repo init --depth=1 -u ${{ github.event.inputs.twrp_manifest }} -b ${{ github.event.inputs.twrp_branch }}
-        git clone --branch ${{ github.event.inputs.device_branch }} --single-branch ${{ github.event.inputs.device_manifest }} .repo/local_manifests
+        python3 ~/.bin/repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_omni.git -b twrp-5.1
+        git clone --branch twrp-5.1 --single-branch https://github.com/J110H-Android/android_device_samsung_${{env.DEVICE}}-twrp.git ~/TWRP/device/samsung/${{env.DEVICE}}
         python3 ~/.bin/repo sync -c --force-sync --optimized-fetch --no-tags --no-clone-bundle --prune -j$(nproc --all)
 
     - name: Building TWRP
@@ -73,7 +51,7 @@ jobs:
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
-        lunch ${{ github.event.inputs.product_name }}_${{ github.event.inputs.device_name }}-eng
+        lunch omni_j1pop3g-eng
         make -j$(nproc --all) recoveryimage
         export PATH=$OLDPATH
         export JAVA_HOME=$OLDJAVAHOME
@@ -82,4 +60,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: twrp
-        path: /home/runner/TWRP/out/target/product/${{ github.event.inputs.device_name }}/recovery.*
+        path: /home/runner/TWRP/out/target/product/${{env.DEVICE}}/recovery.*
